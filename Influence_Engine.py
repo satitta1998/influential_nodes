@@ -67,7 +67,6 @@ def local_gravity_model(graph):
     for i in graph.nodes:
         ki = degrees.get(i, 0)
         total_gravity = 0
-
         # Use the shortest paths from node i to all other nodes
         lengths = nx.single_source_shortest_path_length(graph, i)
 
