@@ -5,7 +5,7 @@ from collections import defaultdict
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Params ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 MIN_YEAR = 1900 # The smallest year which will be considered if exists in the data set (papers with smaller publish year will be ignored)
 MAX_PAPERS_PER_YEAR = 10000 # if number of papers in data set will exceed this number for a certain year the following papers will be ignored
-YEARS_OF_INTEREST = {1990}  # The final plot will show scores for papers published in the years given here.
+YEARS_OF_INTEREST = {2000}  # The final plot will show scores for papers published in the years given here.
 FILE_PATH = r'D:\Datasets\dblp.v10\dblp-ref\dblp-ref-0.json'
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 def get_papers_dict(file_path):
@@ -49,7 +49,39 @@ def calculate_importance(graph, model="in_degree"):
         return nx.in_degree_centrality(graph)
     elif model == "in_degree":
         return nx.in_degree_centrality(graph)
+    elif model == "local_gravity":
+        return local_gravity_model(graph)
     return dict(graph.out_degree())  # Default: return in-degree
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Models  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+def local_gravity_model(graph):
+    """
+    Calculates influence scores of all nodes in the graph using the local gravity model.
+    Uses in-degree as the mass (k), and shortest path length as distance (d).
+    Returns:
+        dict: {node_id: gravity_score}
+    """
+    gravity_scores = {}
+    degrees = dict(graph.out_degree())
+
+    for i in graph.nodes:
+        ki = degrees.get(i, 0)
+        total_gravity = 0
+
+        # Use the shortest paths from node i to all other nodes
+        lengths = nx.single_source_shortest_path_length(graph, i)
+
+        for j, dij in lengths.items():
+            if i == j or dij == 0:
+                continue  # skip self or zero distance
+
+            kj = degrees.get(j, 0)
+            total_gravity += (ki * kj) / (dij ** 2)
+
+        gravity_scores[i] = total_gravity
+
+    return gravity_scores
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN PROCESS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 papers_dict = get_papers_dict(FILE_PATH)                    # Extract data from dataset.
 g = init_graph()                                            # Init empty graph
@@ -58,7 +90,7 @@ years_read_from_ds = []                                          # Init list - s
 for year in sorted(papers_dict.keys()):                     # Iterate through all years in chronological order
     papers_of_year = papers_dict[year]                      # Get specific papers for given year
     add_papers_of_year(g, papers_of_year)                   # Add papers and citations to graph
-    scores = calculate_importance(g, "out_degree")    # Calculate scores with given model
+    scores = calculate_importance(g, "local_gravity")    # Calculate scores with given model
     if year in YEARS_OF_INTEREST:                           # If this is an interesting year, start tracking these papers
         for paper in papers_of_year:
             tracked_papers[paper['id']] = []                # Initialize default dict
