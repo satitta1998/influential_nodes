@@ -47,7 +47,7 @@
     "git-widget-placeholder": "master"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.Influence_Engine">
+  <component name="RunManager" selected="Python.Influence_Engine_1.0.0">
     <configuration name="Influance_engine" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="FinalProject" />
       <option name="ENV_FILES" value="" />
@@ -70,7 +70,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="Influence_Engine" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="Influence_Engine_1.0.0" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="FinalProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -83,7 +83,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="C:\Users\Oren Baranovsky\Documents\braude\Sem8\FinalProject\Influence_Engine.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Oren Baranovsky\Documents\braude\Sem8\FinalProject\Influence_Engine_1.0.0.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -94,7 +94,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.Influence_Engine" />
+        <item itemvalue="Python.Influence_Engine_1.0.0" />
         <item itemvalue="Python.Influance_engine" />
       </list>
     </recent_temporary>
