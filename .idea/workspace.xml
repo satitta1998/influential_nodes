@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="d1d851d1-a27b-4246-9996-945113771a1f" name="Changes" comment="first time good results refactored">
       <changelist_data name="orenb" email="orenbaranovsky@gmail.com" automatic="false" />
-      <change beforePath="$PROJECT_DIR$/Influance_engine.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/project.py" beforeDir="false" afterPath="$PROJECT_DIR$/Influence_Engine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Influence_Engine_1.0.0.py" beforeDir="false" afterPath="$PROJECT_DIR$/Influence_Engine_1.0.0.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,13 +41,15 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.Influance_engine.executor": "Run",
+    "Python.Influence_Engine_1.0.0 (1).executor": "Run",
+    "Python.Influence_Engine_1.0.0.executor": "Run",
     "Python.project.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master"
+    "git-widget-placeholder": "main"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.Influence_Engine_1.0.0">
+  <component name="RunManager" selected="Python.Influence_Engine_1.0.0 (1)">
     <configuration name="Influance_engine" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="FinalProject" />
       <option name="ENV_FILES" value="" />
@@ -62,6 +64,28 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Influance_engine.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Influence_Engine_1.0.0 (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="FinalProject" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Influence_Engine_1.0.0.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -94,6 +118,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.Influence_Engine_1.0.0 (1)" />
         <item itemvalue="Python.Influence_Engine_1.0.0" />
         <item itemvalue="Python.Influance_engine" />
       </list>
@@ -151,6 +176,7 @@
     <watches-manager>
       <configuration name="PythonConfigurationType">
         <watch expression="scores_2d_list[54]" />
+        <watch expression="derivatives" language="Python" />
       </configuration>
     </watches-manager>
   </component>
