@@ -222,7 +222,7 @@ significant_papers = set()
 
 for paper_id, deriv in derivatives.items():
     mean_deriv = np.mean(deriv)
-    print(f"Paper ID: {paper_id}, Mean Derivative: {mean_deriv:.10f}")
+    #print(f"Paper ID: {paper_id}, Mean Derivative: {mean_deriv:.10f}")
     if mean_deriv >= SIGNIFICANT_GROWTH_THRESHOLD:
         significant_papers.add(paper_id)
 
