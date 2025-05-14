@@ -7,13 +7,20 @@ import numpy as np
 from operator import itemgetter
 from networkx.algorithms.centrality import out_degree_centrality
 
+from EffG_Model import main # Import the main function from EffG model file
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Params ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-MIN_YEAR = 1999 # The smallest year which will be considered if exists in the data set (papers with smaller publish year will be ignored)
+MIN_YEAR = 1992 # The smallest year which will be considered if exists in the data set (papers with smaller publish year will be ignored)
 MAX_PAPERS_PER_YEAR = 10000 # if number of papers in data set will exceed this number for a certain year the following papers will be ignored
-YEARS_OF_INTEREST = {2000}  # The final plot will show scores for papers published in the years given here.
-PLOTTER = "pyplot" # choose which plotter toy use pyplot (static) or plotly (dynamic)
-FILE_PATH = r'D:\Datasets\dblp.v10\dblp-ref\dblp-ref-0.json'
-MODEL_TO_EXECUTE = "page_rank_gravity"
+YEARS_OF_INTEREST = {1994}  # The final plot will show scores for papers published in the years given here.
+PLOTTER = "pyplot" # choose which plotter to use: pyplot (static) or plotly (dynamic)
+DATASET = "Cit-HepTh" # chhose which dataset to use: Cit-HepPh, Cit-HepTh, Oren's
+
+#FILE_PATH = r'D:\Datasets\dblp.v10\dblp-ref\dblp-ref-0.json'
+#FILE_PATH = r'C:\\Users\\Kate\\Desktop\\Pr_updated\\Cit-HepPh_dataset_30000\\Cit-HepPh.json'
+FILE_PATH = r'C:\\Users\\Kate\\Desktop\\Pr_updated\\Cit-HepTh_dataset_27000\\Cit-HepTh.json'
+
+MODEL_TO_EXECUTE = "effective_distance_gravity_model"
 SCALE_PR = False # WHen using PageRank_Gravity choose if scale
 PR_SCALE_FACTOR = 1e5 # choose how much to scale PageRank_Gravity results
 #SIGNIFICANT_GROWTH_THRESHOLD = 3e-06  # This value is the minimum change required in order to be plotted
@@ -25,7 +32,7 @@ p.nice(psutil.HIGH_PRIORITY_CLASS)   # Set high priority on windows
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-def get_papers_dict(file_path):
+def get_papers_dict_Oren_dataset(file_path):
     """ Extracts papers from dataset file. Will return a dictionary: keys - years, values - dictionaries representing papers (with keys: id, year, references list)"""
     # Default dict won't throw error when adding to non-existing key.
     papers_by_year = defaultdict(list)
@@ -47,6 +54,29 @@ def get_papers_dict(file_path):
                 })
 
     return dict(papers_by_year)  # Convert back to a normal dict to save memory
+
+def get_papers_dict_CitHep_dataset(file_path):
+    """ Extracts papers from dataset file. Returns a dictionary:
+        keys - years, values - list of papers (each with keys: id, year, references).
+    """
+    papers_by_year = defaultdict(list)
+
+    with open(file_path, 'r') as f:
+        papers = json.load(f)  # load the entire array at once
+
+        for item in papers:
+            publish_year = item.get('year')
+            if not publish_year or publish_year < MIN_YEAR:
+                continue  # Skip invalid or too old papers
+
+            if len(papers_by_year[publish_year]) < MAX_PAPERS_PER_YEAR:
+                papers_by_year[publish_year].append({
+                    'id': item.get('id'),
+                    'year': publish_year,
+                    'references': item.get('references', []),
+                })
+
+    return dict(papers_by_year)
 
 def init_graph():
     """Initializes a directed graph."""
@@ -75,6 +105,8 @@ def calculate_importance(graph, model="in_degree"):
         return nx.eigenvector_centrality(graph.reverse(), max_iter = 1000)
     elif model == "page_rank_gravity":
         return compute_gravity_rank(graph)
+    elif model == "effective_distance_gravity_model":
+        return effective_distance_gravity_model(graph)
     return dict(graph.out_degree())  # Default: return in-degree
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Models  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -175,8 +207,19 @@ def nx_out_degree_centrality(G):
 
     return nx_out_degree
 
+def effective_distance_gravity_model(graph):
+    gravity_scores = {}
+    gravity_scores = main(graph)
+    
+    return gravity_scores
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN PROCESS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-papers_dict = get_papers_dict(FILE_PATH)                    # Extract data from dataset.
+if DATASET == "Cit-HepTh" or "Cit-HepPh":
+    papers_dict = get_papers_dict_CitHep_dataset(FILE_PATH)             # Extract data from dataset.
+    
+if DATASET == "Oren's":
+    papers_dict = get_papers_dict_Oren_dataset(FILE_PATH)                    # Extract data from dataset.
+
 g = init_graph()                                            # Init empty graph
 tracked_papers = defaultdict(list)                          # Init dict - stores {paper_id: [score_over_years]}
 years_read_from_ds = []                                          # Init list - store years for plotting
