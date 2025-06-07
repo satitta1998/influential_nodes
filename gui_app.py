@@ -2,12 +2,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
 from tkinter import ttk
 import threading
-import sys
-import io
 from contextlib import redirect_stdout, redirect_stderr
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-import networkx as nx
 from Influence_Engine import *
 
 
@@ -136,7 +133,7 @@ class CitationGUI:
         tk.Label(model_frame, text="Model:", width=25, anchor='w').pack(side=tk.LEFT)
         models = [
             "in_degree", "out_degree_centrality", "page_rank",
-            "local_gravity", "eigenvector_centrality", "page_rank_gravity"
+            "local_gravity", "eigenvector_centrality", "page_rank_gravity", "effective_distance_gravity_model"
         ]
         self.model_combo = ttk.Combobox(model_frame, values=models, textvariable=self.model_var, width=20)
         self.model_combo.pack(side=tk.LEFT)
@@ -243,7 +240,7 @@ class CitationGUI:
 
     def update_global_params(self):
         """Update global parameters in Influence_Engine module"""
-        global MIN_YEAR, MAX_PAPERS_PER_YEAR, YEARS_OF_INTEREST, PLOTTER, MODEL_TO_EXECUTE
+        global MIN_YEAR, MAX_PAPERS_PER_YEAR, YEARS_OF_INTEREST, PLOTTER, MODEL_TO_EXECUTE, DATASET, FILE_PATH
         global SCALE_PR, PR_SCALE_FACTOR, SIGNIFICANT_GROWTH_THRESHOLD, SKIP_UNSIGNIFICANTS, EXECUTE_ANALYSIS
 
         MIN_YEAR = self.min_year.get()
@@ -268,6 +265,7 @@ class CitationGUI:
         SKIP_UNSIGNIFICANTS = self.skip_unsignificants.get()
         EXECUTE_ANALYSIS = self.execute_analysis.get()
         DATASET = self.data_set.get()
+        FILE_PATH = self.file_path
         return True
 
     def run_engine_thread(self):
@@ -420,9 +418,6 @@ class CitationGUI:
             self.ax.plot(years_to_plot, score_history, marker='o', label=f'Paper {str(paper_id)[-6:]}', alpha=0.7)
             plotted_count += 1
 
-            # Limit number of plotted lines to prevent overcrowding
-            if plotted_count > 20:
-                break
 
         self.ax.set_xlabel("Year")
         self.ax.set_ylabel("Importance Score")
@@ -460,8 +455,7 @@ class CitationGUI:
                     })
 
                 plotted_count += 1
-                if plotted_count > 50:  # Limit for performance
-                    break
+
 
             if plot_data:
                 df = pd.DataFrame(plot_data)

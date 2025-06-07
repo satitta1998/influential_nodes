@@ -1,11 +1,9 @@
 import json
-import matplotlib.pyplot as plt
 import networkx as nx
 from collections import defaultdict
 import psutil, os
 import numpy as np
 from operator import itemgetter
-from networkx.algorithms.centrality import out_degree_centrality
 from EffG_Model import main # Import the main function from EffG model file
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Params ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -73,29 +71,6 @@ def get_papers_dict_CitHep_dataset(file_path):
                 })
 
     return dict(papers_by_year)
-
-# def get_papers_dict(file_path):
-#     """ Extracts papers from dataset file. Will return a dictionary: keys - years, values - dictionaries representing papers (with keys: id, year, references list)"""
-#     # Default dict won't throw error when adding to non-existing key.
-#     papers_by_year = defaultdict(list)
-#
-#     # Parse data set line by line and build papers dictionary.
-#     with open(file_path, 'r') as f:
-#         for line in f:
-#             item = json.loads(line.strip())
-#
-#             publish_year = item.get('year')
-#             if not publish_year or publish_year < MIN_YEAR:
-#                 continue  # Skip invalid years
-#
-#             if len(papers_by_year[publish_year]) < MAX_PAPERS_PER_YEAR:
-#                 papers_by_year[publish_year].append({
-#                     'id': item.get('id'),
-#                     'year': publish_year,
-#                     'references': item.get('references', []),
-#                 })
-#
-#     return dict(papers_by_year)  # Convert back to a normal dict to save memory
 
 def init_graph():
     """Initializes a directed graph."""

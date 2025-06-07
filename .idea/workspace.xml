@@ -5,11 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d1d851d1-a27b-4246-9996-945113771a1f" name="Changes" comment="better plotting">
-      <change afterPath="$PROJECT_DIR$/EffG_Model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Influence_Engine.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gui_app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Influence_Engine_1.0.0.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Influence_Engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/Influence_Engine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui_app.py" beforeDir="false" afterPath="$PROJECT_DIR$/gui_app.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,19 +38,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.Influance_engine.executor": "Run",
-    "Python.Influence_Engine (1).executor": "Run",
-    "Python.Influence_Engine_1.0.0 (1).executor": "Run",
-    "Python.Influence_Engine_1.0.0.executor": "Run",
-    "Python.gui_app.executor": "Debug",
-    "Python.project.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.Influance_engine.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Influence_Engine (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.Influence_Engine_1.0.0 (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.Influence_Engine_1.0.0.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gui_app.executor&quot;: &quot;Run&quot;,
+    &quot;Python.project.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.gui_app">
     <configuration name="Influance_engine" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="FinalProject" />
@@ -168,8 +166,6 @@
       <list>
         <item itemvalue="Python.gui_app" />
         <item itemvalue="Python.Influence_Engine (1)" />
-        <item itemvalue="Python.Influence_Engine_1.0.0 (1)" />
-        <item itemvalue="Python.Influence_Engine_1.0.0" />
         <item itemvalue="Python.Influance_engine" />
       </list>
     </recent_temporary>
@@ -241,16 +237,5 @@
     <MESSAGE value="first time good results" />
     <MESSAGE value="better plotting" />
     <option name="LAST_COMMIT_MESSAGE" value="better plotting" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/gui_app.py</url>
-          <line>327</line>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
