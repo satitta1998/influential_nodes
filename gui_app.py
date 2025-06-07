@@ -6,15 +6,23 @@ from contextlib import redirect_stdout, redirect_stderr
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from Influence_Engine import *
+import queue
+import sys
+import os
 
 
 class ConsoleRedirect:
     """Redirects stdout/stderr to the GUI console"""
 
-    def __init__(self, text_widget):
+    def __init__(self, text_widget, root):
         self.text_widget = text_widget
+        self.root = root
 
     def write(self, string):
+        # Schedule GUI update on main thread
+        self.root.after(0, self._write_to_console, string)
+
+    def _write_to_console(self, string):
         self.text_widget.insert(tk.END, string)
         self.text_widget.see(tk.END)
         self.text_widget.update_idletasks()
@@ -25,25 +33,46 @@ class ConsoleRedirect:
 
 class CitationGUI:
     def __init__(self, root):
+        self.engine = None
         self.root = root
         self.root.title("Citation Importance Analyzer")
         self.root.geometry("1200x800")
 
         # Initialize parameters with defaults from Influence_Engine
-        self.file_path = FILE_PATH
-        self.min_year = tk.IntVar(value=MIN_YEAR)
-        self.max_papers_per_year = tk.IntVar(value=MAX_PAPERS_PER_YEAR)
+        self.file_path = r'D:\Datasets\dblp.v10\dblp-ref\dblp-ref-0.json'
+        self.min_year = tk.IntVar(value=1990)
+        self.max_papers_per_year = tk.IntVar(value=10000)
         self.years_of_interest = tk.StringVar(value="1995")
-        self.plotter_var = tk.StringVar(value=PLOTTER)
-        self.model_var = tk.StringVar(value=MODEL_TO_EXECUTE)
-        self.scale_pr = tk.BooleanVar(value=SCALE_PR)
-        self.pr_scale_factor = tk.DoubleVar(value=PR_SCALE_FACTOR)
-        self.significant_growth_threshold = tk.DoubleVar(value=SIGNIFICANT_GROWTH_THRESHOLD)
-        self.skip_unsignificants = tk.BooleanVar(value=SKIP_UNSIGNIFICANTS)
-        self.execute_analysis = tk.BooleanVar(value=EXECUTE_ANALYSIS)
-        self.data_set = tk.StringVar(value=DATASET)
+        self.plotter_var = tk.StringVar(value="pyplot")
+        self.model_var = tk.StringVar(value="local_gravity")
+        self.scale_pr = tk.BooleanVar(value=False)
+        self.pr_scale_factor = tk.DoubleVar(value=1e5)
+        self.significant_growth_threshold = tk.DoubleVar(value=3e-06)
+        self.skip_insignificant = tk.BooleanVar(value=False)
+        self.execute_analysis = tk.BooleanVar(value=True)
+        self.dataset = tk.StringVar(value="DBLP_V10")
+
+        # Thread-safe communication
+        self.result_queue = queue.Queue()
+        self.is_running = False
 
         self.setup_ui()
+
+        # Handle window closing properly
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        
+
+    def on_closing(self):
+        """Handle application closing"""
+        if self.is_running:
+            if messagebox.askokcancel("Quit", "Analysis is running. Do you want to quit?"):
+                self.is_running = False
+                self.root.quit()
+                self.root.destroy()
+        else:
+            self.root.quit()
+            self.root.destroy()
 
     def setup_ui(self):
         # Create main frame with scrollable content
@@ -92,9 +121,9 @@ class CitationGUI:
         self.file_label = tk.Label(file_section, text=f"Selected: {self.file_path}", wraplength=600)
         self.file_label.pack()
 
-        data_sets = [ "DBLP_V10", "Cit-HepTh", "Cit-HepPh" ]
-        self.model_combo = ttk.Combobox(file_section, values=data_sets, textvariable=self.data_set, width=20)
-        self.model_combo.pack(side=tk.LEFT)
+        data_sets = ["DBLP_V10", "Cit-HepTh", "Cit-HepPh"]
+        self.dataset_combo = ttk.Combobox(file_section, values=data_sets, textvariable=self.dataset, width=20)
+        self.dataset_combo.pack(side=tk.LEFT)
 
         # Basic parameters section
         basic_section = ttk.LabelFrame(scrollable_frame, text="Basic Parameters", padding="10")
@@ -174,7 +203,7 @@ class CitationGUI:
 
         skip_frame = tk.Frame(analysis_section)
         skip_frame.pack(fill=tk.X, pady=2)
-        tk.Checkbutton(skip_frame, text="Skip Unsignificant Papers", variable=self.skip_unsignificants).pack(
+        tk.Checkbutton(skip_frame, text="Skip Unsignificant Papers", variable=self.skip_insignificant).pack(
             side=tk.LEFT)
 
         execute_frame = tk.Frame(analysis_section)
@@ -238,109 +267,146 @@ class CitationGUI:
                     f.write(content)
                 messagebox.showinfo("Success", "Console output saved successfully!")
 
-    def update_global_params(self):
-        """Update global parameters in Influence_Engine module"""
-        global MIN_YEAR, MAX_PAPERS_PER_YEAR, YEARS_OF_INTEREST, PLOTTER, MODEL_TO_EXECUTE, DATASET, FILE_PATH
-        global SCALE_PR, PR_SCALE_FACTOR, SIGNIFICANT_GROWTH_THRESHOLD, SKIP_UNSIGNIFICANTS, EXECUTE_ANALYSIS
+    def get_current_params(self):
+        """Get current parameter values safely"""
+        try:
+            return {
+                'file_path': self.file_path,
+                'min_year': self.min_year.get(),
+                'max_papers_per_year': self.max_papers_per_year.get(),
+                'years_of_interest': set(map(int, self.years_of_interest.get().strip().split(','))),
+                'plotter': self.plotter_var.get(),
+                'model': self.model_var.get(),
+                'scale_pr': self.scale_pr.get(),
+                'pr_scale_factor': self.pr_scale_factor.get(),
+                'significant_growth_threshold': self.significant_growth_threshold.get(),
+                'skip_insignificant': self.skip_insignificant.get(),
+                'execute_analysis': self.execute_analysis.get(),
+                'dataset': self.dataset.get()
+            }
+        except tk.TclError:
+            return None
 
-        MIN_YEAR = self.min_year.get()
-        MAX_PAPERS_PER_YEAR = self.max_papers_per_year.get()
-
-        # Parse years of interest
-        years_str = self.years_of_interest.get().strip()
-        if years_str:
-            try:
-                years_list = [int(year.strip()) for year in years_str.split(',')]
-                YEARS_OF_INTEREST = set(years_list)
-            except ValueError:
-                messagebox.showerror("Error",
-                                     "Invalid years format. Use comma-separated integers (e.g., 1995,2000,2005)")
-                return False
-
-        PLOTTER = self.plotter_var.get()
-        MODEL_TO_EXECUTE = self.model_var.get()
-        SCALE_PR = self.scale_pr.get()
-        PR_SCALE_FACTOR = self.pr_scale_factor.get()
-        SIGNIFICANT_GROWTH_THRESHOLD = self.significant_growth_threshold.get()
-        SKIP_UNSIGNIFICANTS = self.skip_unsignificants.get()
-        EXECUTE_ANALYSIS = self.execute_analysis.get()
-        DATASET = self.data_set.get()
-        FILE_PATH = self.file_path
-        return True
 
     def run_engine_thread(self):
         """Run engine in a separate thread to prevent GUI freezing"""
-        if not self.update_global_params():
+        if self.is_running:
             return
 
+        # Get parameters safely on main thread
+        params = self.get_current_params()
+        if params is None:
+            messagebox.showerror("Error", "Could not read parameters")
+            return
+
+        self.is_running = True
         self.run_button.config(state='disabled', text='Running...')
         self.progress.start()
         self.clear_console()
 
         # Create console redirect
-        console_redirect = ConsoleRedirect(self.console_text)
+        console_redirect = ConsoleRedirect(self.console_text, self.root)
 
         def run_analysis():
             try:
+                # start engine with params
+                self.engine = CitationNetworkAnalyzer(
+                    min_year=params['min_year'],
+                    max_papers_per_year=params['max_papers_per_year'],
+                    years_of_interest=params['years_of_interest'],
+                    plotter=params['plotter'],
+                    file_path=params['file_path'],
+                    model_to_execute=params['model'],
+                    scale_pr=params['scale_pr'],
+                    pr_scale_factor=params['pr_scale_factor'],
+                    significant_growth_threshold=params['significant_growth_threshold'],
+                    skip_insignificant=params['skip_insignificant'],
+                    execute_analysis=params['execute_analysis'],
+                    dataset=params['dataset']
+                )
+
                 # Redirect stdout and stderr to console
                 with redirect_stdout(console_redirect), redirect_stderr(console_redirect):
-                    self.console_text.insert(tk.END, "Starting analysis...\n")
-                    self.console_text.insert(tk.END, f"Parameters:\n")
-                    self.console_text.insert(tk.END, f"  File: {self.file_path}\n")
-                    self.console_text.insert(tk.END, f"  Min Year: {MIN_YEAR}\n")
-                    self.console_text.insert(tk.END, f"  Max Papers/Year: {MAX_PAPERS_PER_YEAR}\n")
-                    self.console_text.insert(tk.END, f"  Years of Interest: {YEARS_OF_INTEREST}\n")
-                    self.console_text.insert(tk.END, f"  Model: {MODEL_TO_EXECUTE}\n")
-                    self.console_text.insert(tk.END, f"  Plotter: {PLOTTER}\n")
-                    self.console_text.insert(tk.END, "-" * 50 + "\n")
+                    print("Starting analysis...")
+                    print(f"Parameters:")
+                    print(f"  File: {params['file_path']}")
+                    print(f"  Min Year: {params['min_year']}")
+                    print(f"  Max Papers/Year: {params['max_papers_per_year']}")
+                    print(f"  Years of Interest: {params['years_of_interest']}")
+                    print(f"  Model: {params['model']}")
+                    print(f"  Plotter: {params['plotter']}")
+                    print("-" * 50)
 
-                    self.run_influence_engine()
+                    result = self.run_influence_engine(params)
 
-                    self.console_text.insert(tk.END, "\nAnalysis completed successfully!\n")
+                    # Send result back to main thread
+                    self.result_queue.put(('success', result))
+                    print("\nAnalysis completed successfully!")
 
             except Exception as e:
-                self.console_text.insert(tk.END, f"\nError occurred: {str(e)}\n")
-                messagebox.showerror("Error", f"Analysis failed: {str(e)}")
+                error_msg = f"Error occurred: {str(e)}"
+                print(error_msg)
+                self.result_queue.put(('error', error_msg))
             finally:
+                # Schedule cleanup on main thread
                 self.root.after(0, self.analysis_finished)
 
         # Start analysis in separate thread
-        thread = threading.Thread(target=run_analysis)
-        thread.daemon = True
+        thread = threading.Thread(target=run_analysis, daemon=True)
         thread.start()
 
     def analysis_finished(self):
         """Called when analysis is finished"""
-        self.run_button.config(state='normal', text='Run Analysis')
+        self.is_running = False
+        self.run_button.config(state='normal', text='Run Engine')
         self.progress.stop()
 
-    def run_influence_engine(self):
-        """Main analysis logic (adapted from original code)"""
-        if not self.file_path or not os.path.exists(self.file_path):
+        # Check for results
+        try:
+            while not self.result_queue.empty():
+                result_type, result_data = self.result_queue.get_nowait()
+                if result_type == 'error':
+                    messagebox.showerror("Error", f"Analysis failed: {result_data}")
+                elif result_type == 'success':
+                    # Handle successful result if needed
+                    pass
+        except queue.Empty:
+            pass
+
+    def run_influence_engine(self, params):
+        file_path = params['file_path']
+        dataset = params['dataset']
+        model = params['model']
+        plotter = params['plotter']
+        years_of_interest = params['years_of_interest']
+        execute_analysis = params['execute_analysis']
+        significant_growth_threshold = params['significant_growth_threshold']
+
+        if not file_path or not os.path.exists(file_path):
             raise Exception("Please select a valid JSON file")
 
-        self.ax.clear()
-
         print("Loading papers from dataset...")
-        #papers_dict = get_papers_dict(self.file_path)
-        if DATASET == "Cit-HepTh" or DATASET =="Cit-HepPh":
-            papers_dict = get_papers_dict_CitHep_dataset(FILE_PATH)  # Extract data from dataset.
 
-        if DATASET == "DBLP_V10":
-            papers_dict = get_papers_dict_DBLP_dataset(FILE_PATH)  # Extract data from dataset.
+        if dataset == "Cit-HepTh" or dataset == "Cit-HepPh":
+            papers_dict = self.engine.get_papers_dict_cithep_dataset(file_path)
+        elif dataset == "DBLP_V10":
+            papers_dict = self.engine.get_papers_dict_dblp_dataset(file_path)
+        else:
+            raise Exception(f"Unknown dataset: {dataset}")
 
         print("Initializing graph...")
-        g = init_graph()
+        g = self.engine.init_graph()
         tracked_papers = defaultdict(list)
         years_read_from_ds = []
 
-        # Check if any years of interest exist in dataset
+        # Validate years of interest
         available_years = set(papers_dict.keys())
-        years_of_interest_available = YEARS_OF_INTEREST.intersection(available_years)
+        years_of_interest_available = available_years.intersection(years_of_interest)
 
         if not years_of_interest_available:
             raise Exception(
-                f"No papers found for years {YEARS_OF_INTEREST} in the dataset. Available years: {sorted(available_years)}")
+                f"No papers found for years {sorted(years_of_interest)} in the dataset. "
+                f"Available years: {sorted(available_years)}")
 
         print(f"Found papers for years of interest: {sorted(years_of_interest_available)}")
 
@@ -348,10 +414,10 @@ class CitationGUI:
         for year in sorted(papers_dict.keys()):
             print(f"Processing year {year}...")
             papers_of_year = papers_dict[year]
-            add_papers_of_year(g, papers_of_year)
-            scores = calculate_importance(g, MODEL_TO_EXECUTE)
+            self.engine.add_papers_of_year(graph= g,papers= papers_of_year)
+            scores = self.engine.calculate_importance(model=model, graph=g)
 
-            if year in YEARS_OF_INTEREST:
+            if year in years_of_interest:
                 for paper in papers_of_year:
                     tracked_papers[paper['id']] = []
 
@@ -363,11 +429,11 @@ class CitationGUI:
         print(f"Tracking {len(tracked_papers)} papers across {len(years_read_from_ds)} years")
 
         # Analysis section
-        if EXECUTE_ANALYSIS:
+        if execute_analysis:
             print("\nPerforming derivative analysis...")
             derivatives = {
-                paper: np.gradient(extracted_scores)
-                for paper, extracted_scores in tracked_papers.items()
+                paper: np.gradient(scores)
+                for paper, scores in tracked_papers.items()
             }
 
             if derivatives:
@@ -382,11 +448,11 @@ class CitationGUI:
                 biggest_spike_paper = max(max_single_jump.items(), key=lambda item: item[1])
                 print(f"Paper with biggest spike: {biggest_spike_paper[0]}")
 
-                significant_papers = set()
-                for paper_id, deriv in derivatives.items():
-                    mean_deriv = np.mean(deriv)
-                    if mean_deriv >= SIGNIFICANT_GROWTH_THRESHOLD:
-                        significant_papers.add(paper_id)
+                significant_papers = {
+                    paper_id
+                    for paper_id, deriv in derivatives.items()
+                    if np.mean(deriv) >= significant_growth_threshold
+                }
 
                 total_papers = len(derivatives)
                 num_significant = len(significant_papers)
@@ -395,40 +461,50 @@ class CitationGUI:
                 print(f"Significant papers: {num_significant}")
                 print(f"Percentage significant: {num_significant / total_papers * 100:.2f}%")
                 print("=" * 40)
+            else:
+                significant_papers = set()
         else:
             significant_papers = set(tracked_papers.keys())
 
         # Plotting section
-        print(f"\nGenerating plot using {PLOTTER}...")
-        if PLOTTER == "pyplot":
-            self.plot_with_matplotlib(tracked_papers, years_read_from_ds, significant_papers)
-        elif PLOTTER == "plotly":
+        print(f"\nGenerating plot using {plotter}...")
+        if plotter == "pyplot":
+            self.root.after(0, self.plot_with_matplotlib, tracked_papers, years_read_from_ds, significant_papers)
+        elif plotter == "plotly":
             self.plot_with_plotly(tracked_papers, years_read_from_ds, significant_papers)
+
+        return {
+            'tracked_papers': tracked_papers,
+            'years_read_from_ds': years_read_from_ds,
+            'significant_papers': significant_papers
+        }
 
     def plot_with_matplotlib(self, tracked_papers, years_read_from_ds, significant_papers):
         """Plot results using matplotlib in the GUI"""
-        self.ax.clear()
+        try:
+            self.ax.clear()
 
-        plotted_count = 0
-        for paper_id, score_history in tracked_papers.items():
-            if paper_id not in significant_papers and SKIP_UNSIGNIFICANTS:
-                continue
+            plotted_count = 0
+            for paper_id, score_history in tracked_papers.items():
+                if paper_id not in significant_papers and self.skip_insignificant:
+                    continue
 
-            years_to_plot = years_read_from_ds[-len(score_history):]
-            self.ax.plot(years_to_plot, score_history, marker='o', label=f'Paper {str(paper_id)[-6:]}', alpha=0.7)
-            plotted_count += 1
+                years_to_plot = years_read_from_ds[-len(score_history):]
+                self.ax.plot(years_to_plot, score_history, marker='o', label=f'Paper {str(paper_id)[-6:]}', alpha=0.7)
+                plotted_count += 1
 
+            self.ax.set_xlabel("Year")
+            self.ax.set_ylabel("Importance Score")
+            self.ax.set_title(f"Tracked Papers with Significant Growth (>{self.significant_growth_threshold})")
 
-        self.ax.set_xlabel("Year")
-        self.ax.set_ylabel("Importance Score")
-        self.ax.set_title(f"Tracked Papers with Significant Growth (>{SIGNIFICANT_GROWTH_THRESHOLD})")
+            if plotted_count <= 10:  # Only show legend if not too many lines
+                self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
-        if plotted_count <= 10:  # Only show legend if not too many lines
-            self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-
-        plt.tight_layout()
-        self.canvas.draw()
-        print(f"Plotted {plotted_count} papers in matplotlib")
+            plt.tight_layout()
+            self.canvas.draw()
+            print(f"Plotted {plotted_count} papers in matplotlib")
+        except Exception as e:
+            print(f"Error plotting with matplotlib: {e}")
 
     def plot_with_plotly(self, tracked_papers, years_read_from_ds, significant_papers):
         """Plot results using plotly (external browser)"""
@@ -443,7 +519,7 @@ class CitationGUI:
             plotted_count = 0
 
             for paper_id, score_history in tracked_papers.items():
-                if paper_id not in significant_papers and SKIP_UNSIGNIFICANTS:
+                if paper_id not in significant_papers and self.skip_insignificant:
                     continue
 
                 years_to_plot = years_read_from_ds[-len(score_history):]
@@ -456,12 +532,11 @@ class CitationGUI:
 
                 plotted_count += 1
 
-
             if plot_data:
                 df = pd.DataFrame(plot_data)
                 fig = px.line(df, x='Year', y='Score', color='Paper ID', line_group='Paper ID')
                 fig.update_layout(
-                    title=f"Importance Score Over Time (Significant Growth > {SIGNIFICANT_GROWTH_THRESHOLD})",
+                    title=f"Importance Score Over Time (Significant Growth > {self.significant_growth_threshold})",
                     xaxis_title="Year",
                     yaxis_title="Importance Score",
                     hovermode='closest',
