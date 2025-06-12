@@ -11,6 +11,22 @@ from EffG_Model import main  # Import the main function from EffG model file
 class CitationNetworkAnalyzer:
     """
     A class for analyzing citation networks using various centrality and influence models.
+
+    Initialize the Citation Network Analyzer with configuration parameters.
+
+    Args:
+        min_year (int): The smallest year to consider in the dataset
+        max_papers_per_year (int): Maximum papers per year to process
+        years_of_interest (set): Years to analyze in the final plot
+        plotter (str): Plotter type ("pyplot" or "plotly")
+        file_path (str): Path to the dataset file
+        model_to_execute (str): Model to use for analysis
+        scale_pr (bool): Whether to scale PageRank results
+        pr_scale_factor (float): Factor for scaling PageRank
+        significant_growth_threshold (float): Minimum change threshold for plotting
+        skip_insignificant (bool): Whether to skip insignificant results
+        execute_analysis (bool): Whether to execute analysis
+        dataset (str): Dataset identifier
     """
 
     def __init__(self,
@@ -26,23 +42,7 @@ class CitationNetworkAnalyzer:
                  skip_insignificant=False,
                  execute_analysis=True,
                  dataset="DBLP_V10"):
-        """
-        Initialize the Citation Network Analyzer with configuration parameters.
 
-        Args:
-            min_year (int): The smallest year to consider in the dataset
-            max_papers_per_year (int): Maximum papers per year to process
-            years_of_interest (set): Years to analyze in the final plot
-            plotter (str): Plotter type ("pyplot" or "plotly")
-            file_path (str): Path to the dataset file
-            model_to_execute (str): Model to use for analysis
-            scale_pr (bool): Whether to scale PageRank results
-            pr_scale_factor (float): Factor for scaling PageRank
-            significant_growth_threshold (float): Minimum change threshold for plotting
-            skip_insignificant (bool): Whether to skip insignificant results
-            execute_analysis (bool): Whether to execute analysis
-            dataset (str): Dataset identifier
-        """
         # Configuration parameters
         self.min_year = min_year
         self.max_papers_per_year = max_papers_per_year
@@ -53,7 +53,7 @@ class CitationNetworkAnalyzer:
         self.scale_pr = scale_pr
         self.pr_scale_factor = pr_scale_factor
         self.significant_growth_threshold = significant_growth_threshold
-        self.skip_unsignificants = skip_insignificant
+        self.skip_insignificants = skip_insignificant
         self.execute_analysis = execute_analysis
         self.dataset = dataset
 
@@ -117,6 +117,8 @@ class CitationNetworkAnalyzer:
         Returns:
             dict: Dictionary with years as keys and lists of paper dictionaries as values
         """
+        
+
         if file_path is None:
             file_path = self.file_path
 
@@ -124,19 +126,16 @@ class CitationNetworkAnalyzer:
 
         with open(file_path, 'r') as f:
             papers = json.load(f)
-
             for item in papers:
                 publish_year = item.get('year')
                 if not publish_year or publish_year < self.min_year:
                     continue
-
                 if len(papers_by_year[publish_year]) < self.max_papers_per_year:
                     papers_by_year[publish_year].append({
                         'id': item.get('id'),
                         'year': publish_year,
                         'references': item.get('references', []),
                     })
-
         self.papers_by_year = dict(papers_by_year)
         return self.papers_by_year
 
@@ -264,10 +263,6 @@ class CitationNetworkAnalyzer:
                 total_gravity += (ki * kj) / (dij ** 2)
 
             gravity_scores[i] = total_gravity
-
-        # Normalize by average
-        gravity_scores = self.divide_by_avg(gravity_scores)
-        print(f"AFTER {sorted(gravity_scores.values())[-10:]}")
 
         # Display results
         self._display_top_bottom_scores(gravity_scores, "Local Gravity")

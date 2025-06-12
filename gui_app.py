@@ -7,10 +7,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from Influence_Engine import *
 import queue
-import sys
 import os
+import pandas as pd
+from collections import defaultdict
+import numpy as np
 
 
+# Class for redirecting console output to the GUI text widget (used to capture stdout/stderr)
 class ConsoleRedirect:
     """Redirects stdout/stderr to the GUI console"""
 
@@ -30,7 +33,7 @@ class ConsoleRedirect:
     def flush(self):
         pass
 
-
+# Main GUI Class
 class CitationGUI:
     def __init__(self, root):
         self.engine = None
@@ -52,16 +55,15 @@ class CitationGUI:
         self.execute_analysis = tk.BooleanVar(value=True)
         self.dataset = tk.StringVar(value="DBLP_V10")
 
-        # Thread-safe communication
+        # Thread-safe queue for communication from worker thread back to GUI
         self.result_queue = queue.Queue()
         self.is_running = False
 
+        # Build the full GUI
         self.setup_ui()
 
         # Handle window closing properly
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-        
 
     def on_closing(self):
         """Handle application closing"""
@@ -75,6 +77,7 @@ class CitationGUI:
             self.root.destroy()
 
     def setup_ui(self):
+        """Create the main UI with tabs"""
         # Create main frame with scrollable content
         main_frame = tk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -99,7 +102,9 @@ class CitationGUI:
         self.setup_console_tab(console_frame)
         self.setup_results_tab(results_frame)
 
+
     def setup_parameters_tab(self, parent):
+        """Set up the full parameters tab"""
         # Create scrollable frame for parameters
         canvas = tk.Canvas(parent)
         scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
@@ -164,6 +169,7 @@ class CitationGUI:
             "in_degree", "out_degree_centrality", "page_rank",
             "local_gravity", "eigenvector_centrality", "page_rank_gravity", "effective_distance_gravity_model"
         ]
+        
         self.model_combo = ttk.Combobox(model_frame, values=models, textvariable=self.model_var, width=20)
         self.model_combo.pack(side=tk.LEFT)
 
@@ -203,7 +209,7 @@ class CitationGUI:
 
         skip_frame = tk.Frame(analysis_section)
         skip_frame.pack(fill=tk.X, pady=2)
-        tk.Checkbutton(skip_frame, text="Skip Unsignificant Papers", variable=self.skip_insignificant).pack(
+        tk.Checkbutton(skip_frame, text="Skip Insignificant Papers", variable=self.skip_insignificant).pack(
             side=tk.LEFT)
 
         execute_frame = tk.Frame(analysis_section)
@@ -224,6 +230,7 @@ class CitationGUI:
         scrollbar.pack(side="right", fill="y")
 
     def setup_console_tab(self, parent):
+        """Set up console output tab"""
         # Console output
         console_frame = tk.Frame(parent)
         console_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -241,21 +248,25 @@ class CitationGUI:
         tk.Button(clear_frame, text="Save Console Output", command=self.save_console).pack(side=tk.LEFT, padx=5)
 
     def setup_results_tab(self, parent):
+        """Set up results tab"""
         # Results visualization
         self.fig, self.ax = plt.subplots(figsize=(10, 6))
         self.canvas = FigureCanvasTkAgg(self.fig, master=parent)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
     def select_file(self):
+        """Open a file dialog to select the JSON file; update the file path"""
         path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
         if path:
             self.file_path = path
             self.file_label.config(text=f"Selected: {self.file_path}")
 
     def clear_console(self):
+        """Clear the console output in the console tab"""
         self.console_text.delete(1.0, tk.END)
 
     def save_console(self):
+        """Save the console output into a text file"""
         content = self.console_text.get(1.0, tk.END)
         if content.strip():
             filename = filedialog.asksaveasfilename(
@@ -268,7 +279,7 @@ class CitationGUI:
                 messagebox.showinfo("Success", "Console output saved successfully!")
 
     def get_current_params(self):
-        """Get current parameter values safely"""
+        """Get current parameter values from the GUI input fields safely"""
         try:
             return {
                 'file_path': self.file_path,
@@ -286,12 +297,12 @@ class CitationGUI:
             }
         except tk.TclError:
             return None
-
+  
 
     def run_engine_thread(self):
         """Run engine in a separate thread to prevent GUI freezing"""
         if self.is_running:
-            return
+            return  # Prevent multiple runs simultaneously
 
         # Get parameters safely on main thread
         params = self.get_current_params()
@@ -308,6 +319,7 @@ class CitationGUI:
         console_redirect = ConsoleRedirect(self.console_text, self.root)
 
         def run_analysis():
+            """Run the actual engine logic inside the thread"""
             try:
                 # start engine with params
                 self.engine = CitationNetworkAnalyzer(
@@ -336,7 +348,8 @@ class CitationGUI:
                     print(f"  Model: {params['model']}")
                     print(f"  Plotter: {params['plotter']}")
                     print("-" * 50)
-
+                    
+                    
                     result = self.run_influence_engine(params)
 
                     # Send result back to main thread
@@ -356,7 +369,7 @@ class CitationGUI:
         thread.start()
 
     def analysis_finished(self):
-        """Called when analysis is finished"""
+        """Called when analysis is finished. Reset the GUI state and handle any results or errors"""
         self.is_running = False
         self.run_button.config(state='normal', text='Run Engine')
         self.progress.stop()
@@ -374,6 +387,17 @@ class CitationGUI:
             pass
 
     def run_influence_engine(self, params):
+        """
+        Performes the main workflow:
+        - loads data from selected dataset
+        - constructs citation graph year by year
+        - calculates importance scores per paper
+        - saves the results to CSV
+        - optionally analyzes growth trends
+        - generates plots
+        """
+
+        # Unpack parameters from GUI input
         file_path = params['file_path']
         dataset = params['dataset']
         model = params['model']
@@ -382,11 +406,13 @@ class CitationGUI:
         execute_analysis = params['execute_analysis']
         significant_growth_threshold = params['significant_growth_threshold']
 
+        # Validate file path
         if not file_path or not os.path.exists(file_path):
             raise Exception("Please select a valid JSON file")
 
         print("Loading papers from dataset...")
 
+        # Load papers dictionary depending on selected dataset
         if dataset == "Cit-HepTh" or dataset == "Cit-HepPh":
             papers_dict = self.engine.get_papers_dict_cithep_dataset(file_path)
         elif dataset == "DBLP_V10":
@@ -395,9 +421,10 @@ class CitationGUI:
             raise Exception(f"Unknown dataset: {dataset}")
 
         print("Initializing graph...")
-        g = self.engine.init_graph()
-        tracked_papers = defaultdict(list)
-        years_read_from_ds = []
+        g = self.engine.init_graph()        # initialize empty graph
+        tracked_papers = defaultdict(list)  # papers to track importance scores
+        tracked_years = []                  # save tracked years for score saving
+        years_read_from_ds = []             # list of years available in dataset
 
         # Validate years of interest
         available_years = set(papers_dict.keys())
@@ -417,10 +444,16 @@ class CitationGUI:
             self.engine.add_papers_of_year(graph= g,papers= papers_of_year)
             scores = self.engine.calculate_importance(model=model, graph=g)
 
+            # Start tracking new papers that appeared in years of interest
             if year in years_of_interest:
                 for paper in papers_of_year:
                     tracked_papers[paper['id']] = []
 
+            # Save year for tracked papers
+            if year >= sorted(years_of_interest)[0]:
+                tracked_years.append(year)
+
+            # Save scores for tracked papers
             for paper_id in tracked_papers:
                 tracked_papers[paper_id].append(scores.get(paper_id, 0))
 
@@ -428,8 +461,32 @@ class CitationGUI:
 
         print(f"Tracking {len(tracked_papers)} papers across {len(years_read_from_ds)} years")
 
+        # Convert the scores to DataFrame and save to csv
+        print("Saving the scores to CSV file...")
+        if tracked_papers:
+            # Create columns names: paperID + year columns
+            columns = ['paperID'] + [f'{year}' for year in tracked_years]
+            
+            # Prepare data for DataFrame
+            data = []
+            for paper_id, scores in tracked_papers.items():
+                row = [paper_id] + scores
+                data.append(row)
+                
+            # Create DataFrame
+            df = pd.DataFrame(data, columns = columns)
+            
+            #Save to csv
+            output_filename = f"paper_scores_{self.dataset.get()}_{self.model_var.get()}_year_{self.years_of_interest.get()}.csv"
+            df.to_csv(output_filename, index=False)
+            print(f"Results saved to {output_filename}")
+        else:
+            print("No papers were tracked - CSV not created")
+
+
         # Analysis section
         if execute_analysis:
+            #If execute_analysis is True: compute derivatives and filter papers based on significant_growth_threshold
             print("\nPerforming derivative analysis...")
             derivatives = {
                 paper: np.gradient(scores)
@@ -437,17 +494,21 @@ class CitationGUI:
             }
 
             if derivatives:
+                # Paper with largest derivative at last year (fastest growing recently)
                 most_growth_paper = max(derivatives.items(), key=lambda item: item[1][-1])
                 print(f"Most rapidly growing paper: {most_growth_paper[0]}")
 
+                # Paper with highest average growth over period
                 avg_growth = {paper: np.mean(deriv) for paper, deriv in derivatives.items()}
                 most_consistent_riser = max(avg_growth.items(), key=lambda item: item[1])
                 print(f"Most consistent riser: {most_consistent_riser[0]}")
 
+                # Paper with highest single year growth spike
                 max_single_jump = {paper: max(deriv) for paper, deriv in derivatives.items()}
                 biggest_spike_paper = max(max_single_jump.items(), key=lambda item: item[1])
                 print(f"Paper with biggest spike: {biggest_spike_paper[0]}")
 
+                # Select papers that exceed growth threshold
                 significant_papers = {
                     paper_id
                     for paper_id, deriv in derivatives.items()
@@ -464,6 +525,7 @@ class CitationGUI:
             else:
                 significant_papers = set()
         else:
+            # If execute_analysis is False: then all papers in tracked_papers will be treated as significant by default.
             significant_papers = set(tracked_papers.keys())
 
         # Plotting section
@@ -471,7 +533,7 @@ class CitationGUI:
         if plotter == "pyplot":
             self.root.after(0, self.plot_with_matplotlib, tracked_papers, years_read_from_ds, significant_papers)
         elif plotter == "plotly":
-            self.plot_with_plotly(tracked_papers, years_read_from_ds, significant_papers)
+            self.root.after(0, self.plot_with_plotly, tracked_papers, years_read_from_ds, significant_papers)
 
         return {
             'tracked_papers': tracked_papers,
@@ -485,6 +547,7 @@ class CitationGUI:
             self.ax.clear()
 
             plotted_count = 0
+                        
             for paper_id, score_history in tracked_papers.items():
                 if paper_id not in significant_papers and self.skip_insignificant:
                     continue
@@ -495,7 +558,11 @@ class CitationGUI:
 
             self.ax.set_xlabel("Year")
             self.ax.set_ylabel("Importance Score")
-            self.ax.set_title(f"Tracked Papers with Significant Growth (>{self.significant_growth_threshold})")
+            
+            if(self.execute_analysis.get()):
+                self.ax.set_title(f"Tracked Papers with Significant Growth (>{self.significant_growth_threshold.get()})")
+            else:
+                self.ax.set_title("Tracked Papers")
 
             if plotted_count <= 10:  # Only show legend if not too many lines
                 self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -519,7 +586,7 @@ class CitationGUI:
             plotted_count = 0
 
             for paper_id, score_history in tracked_papers.items():
-                if paper_id not in significant_papers and self.skip_insignificant:
+                if paper_id not in significant_papers and self.skip_insignificant:                
                     continue
 
                 years_to_plot = years_read_from_ds[-len(score_history):]
@@ -535,12 +602,22 @@ class CitationGUI:
             if plot_data:
                 df = pd.DataFrame(plot_data)
                 fig = px.line(df, x='Year', y='Score', color='Paper ID', line_group='Paper ID')
-                fig.update_layout(
-                    title=f"Importance Score Over Time (Significant Growth > {self.significant_growth_threshold})",
-                    xaxis_title="Year",
-                    yaxis_title="Importance Score",
-                    hovermode='closest',
-                )
+                
+                if(self.execute_analysis.get()):
+                    fig.update_layout(
+                        title=f"Importance Score Over Time (Significant Growth > {self.significant_growth_threshold.get()})",
+                        xaxis_title="Year",
+                        yaxis_title="Importance Score",
+                        hovermode='closest',
+                    )
+                else:
+                    fig.update_layout(
+                        title="Importance Score Over Time",
+                        xaxis_title="Year",
+                        yaxis_title="Importance Score",
+                        hovermode='closest',
+                    )
+
                 fig.show()
                 print(f"Opened plotly visualization with {plotted_count} papers in browser")
             else:
