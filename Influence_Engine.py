@@ -70,7 +70,7 @@ class CitationNetworkAnalyzer:
             p = psutil.Process(os.getpid())
             p.nice(psutil.HIGH_PRIORITY_CLASS)
         except Exception as e:
-            print(f"Warning: Could not set process priority: {e}")
+            raise Exception(f"Warning: Could not set process priority: {e}")
 
     # =============================== Data Loading Methods =============================== #
 
@@ -87,25 +87,29 @@ class CitationNetworkAnalyzer:
         if file_path is None:
             file_path = self.file_path
 
-        papers_by_year = defaultdict(list)
+        try:
+            papers_by_year = defaultdict(list)
 
-        with open(file_path, 'r') as f:
-            for line in f:
-                item = json.loads(line.strip())
+            with open(file_path, 'r') as f:
+                for line in f:
+                    item = json.loads(line.strip())
 
-                publish_year = item.get('year')
-                if not publish_year or publish_year < self.min_year:
-                    continue
+                    publish_year = item.get('year')
+                    if not publish_year or publish_year < self.min_year:
+                        continue
 
-                if len(papers_by_year[publish_year]) < self.max_papers_per_year:
-                    papers_by_year[publish_year].append({
-                        'id': item.get('id'),
-                        'year': publish_year,
-                        'references': item.get('references', []),
-                    })
+                    if len(papers_by_year[publish_year]) < self.max_papers_per_year:
+                        papers_by_year[publish_year].append({
+                            'id': item.get('id'),
+                            'year': publish_year,
+                            'references': item.get('references', []),
+                        })
 
-        self.papers_by_year = dict(papers_by_year)
-        return self.papers_by_year
+            self.papers_by_year = dict(papers_by_year)
+            return self.papers_by_year
+        except Exception as e:
+            raise Exception(f"Error reading the dataset file")
+
 
     def get_papers_dict_cithep_dataset(self, file_path=None):
         """
@@ -122,22 +126,27 @@ class CitationNetworkAnalyzer:
         if file_path is None:
             file_path = self.file_path
 
-        papers_by_year = defaultdict(list)
+        try:
+            papers_by_year = defaultdict(list)
 
-        with open(file_path, 'r') as f:
-            papers = json.load(f)
-            for item in papers:
-                publish_year = item.get('year')
-                if not publish_year or publish_year < self.min_year:
-                    continue
-                if len(papers_by_year[publish_year]) < self.max_papers_per_year:
-                    papers_by_year[publish_year].append({
-                        'id': item.get('id'),
-                        'year': publish_year,
-                        'references': item.get('references', []),
-                    })
-        self.papers_by_year = dict(papers_by_year)
-        return self.papers_by_year
+            with open(file_path, 'r') as f:
+                papers = json.load(f)
+                for item in papers:
+                    publish_year = item.get('year')
+                    if not publish_year or publish_year < self.min_year:
+                        continue
+                    if len(papers_by_year[publish_year]) < self.max_papers_per_year:
+                        papers_by_year[publish_year].append({
+                            'id': item.get('id'),
+                            'year': publish_year,
+                            'references': item.get('references', []),
+                        })
+            self.papers_by_year = dict(papers_by_year)
+            return self.papers_by_year
+        except Exception as e:
+            raise Exception(f"Error reading the dataset file")
+
+
 
     # =============================== Graph Methods =============================== #
 
@@ -238,7 +247,7 @@ class CitationNetworkAnalyzer:
 
     def local_gravity_model(self, graph):
         """
-        Calculates influence scores using the local gravity model.
+        Calculates influence scores using the local gravity model with truncation radius R.
         Uses out-degree as mass and shortest path length as distance.
 
         Args:
@@ -255,8 +264,19 @@ class CitationNetworkAnalyzer:
             total_gravity = 0
             lengths = nx.single_source_shortest_path_length(graph, i)
 
+            # Calculate R: half of average shortest path length
+            # Convert distances to numpy array
+            distances = np.fromiter(lengths.values(), dtype=float)
+
+            # Mask out self-distance (== 0)
+            distances = distances[distances != 0]
+
+            # Compute mean safely
+            avg_length = np.mean(distances) if distances.size > 0 else 1
+            trunc_radius = avg_length / 2
+
             for j, dij in lengths.items():
-                if i == j or dij == 0:
+                if i == j or dij == 0 or dij >= trunc_radius:
                     continue
 
                 kj = degrees.get(j, 0)

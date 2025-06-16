@@ -11,6 +11,7 @@ import os
 import pandas as pd
 from collections import defaultdict
 import numpy as np
+from datetime import datetime
 
 
 # Class for redirecting console output to the GUI text widget (used to capture stdout/stderr)
@@ -297,6 +298,28 @@ class CitationGUI:
             }
         except tk.TclError:
             return None
+
+    def validate_params(self, params):
+        """
+        Validate the parameters before running analysis.
+        Raises ValueError if invalid.
+        """
+
+        if params['min_year'] < 0:
+            raise ValueError("Minimum year cannot be negative.")
+
+        if params['min_year'] > datetime.now().year or params['min_year'] < 1600:
+            raise ValueError("Min year seems unrealistic. Please check your input.")
+
+        if params['max_papers_per_year'] <= 0:
+            raise ValueError("Max papers per year must be a positive integer.")
+
+        if params['pr_scale_factor'] < 0:
+            raise ValueError("PR scale factor cannot be negative.")
+
+        if params['significant_growth_threshold'] < 0:
+            raise ValueError("Significant growth threshold cannot be negative.")
+
   
 
     def run_engine_thread(self):
@@ -307,8 +330,16 @@ class CitationGUI:
         # Get parameters safely on main thread
         params = self.get_current_params()
         if params is None:
-            messagebox.showerror("Error", "Could not read parameters")
+            messagebox.showerror ("Error", "Could not read parameters")
             return
+
+        # Perform user inputs validation
+        try:
+            self.validate_params(params)
+        except Exception as e:
+            messagebox.showerror("Input Error", f"{e}")
+            return
+
 
         self.is_running = True
         self.run_button.config(state='disabled', text='Running...')
@@ -388,7 +419,7 @@ class CitationGUI:
 
     def run_influence_engine(self, params):
         """
-        Performes the main workflow:
+        Performs the main workflow:
         - loads data from selected dataset
         - constructs citation graph year by year
         - calculates importance scores per paper
@@ -458,30 +489,32 @@ class CitationGUI:
                 tracked_papers[paper_id].append(scores.get(paper_id, 0))
 
             years_read_from_ds.append(year)
-
         print(f"Tracking {len(tracked_papers)} papers across {len(years_read_from_ds)} years")
 
         # Convert the scores to DataFrame and save to csv
         print("Saving the scores to CSV file...")
-        if tracked_papers:
-            # Create columns names: paperID + year columns
-            columns = ['paperID'] + [f'{year}' for year in tracked_years]
-            
-            # Prepare data for DataFrame
-            data = []
-            for paper_id, scores in tracked_papers.items():
-                row = [paper_id] + scores
-                data.append(row)
-                
-            # Create DataFrame
-            df = pd.DataFrame(data, columns = columns)
-            
-            #Save to csv
-            output_filename = f"paper_scores_{self.dataset.get()}_{self.model_var.get()}_year_{self.years_of_interest.get()}.csv"
-            df.to_csv(output_filename, index=False)
-            print(f"Results saved to {output_filename}")
-        else:
-            print("No papers were tracked - CSV not created")
+        try:
+            if tracked_papers:
+                # Create columns names: paperID + year columns
+                columns = ['paperID'] + [f'{year}' for year in tracked_years]
+
+                # Prepare data for DataFrame
+                data = []
+                for paper_id, scores in tracked_papers.items():
+                    row = [paper_id] + scores
+                    data.append(row)
+
+                # Create DataFrame
+                df = pd.DataFrame(data, columns = columns)
+
+                #Save to csv
+                output_filename = f"paper_scores_{self.dataset.get()}_{self.model_var.get()}_year_{self.years_of_interest.get()}.csv"
+                df.to_csv(output_filename, index=False)
+                print(f"Results saved to {output_filename}")
+            else:
+                print("No papers were tracked - CSV not created")
+        except Exception:
+            raise Exception("Error in saving CSV file")
 
 
         # Analysis section
@@ -494,16 +527,16 @@ class CitationGUI:
             }
 
             if derivatives:
-                # Paper with largest derivative at last year (fastest growing recently)
+                # Paper with the largest derivative at last year (fastest growing recently)
                 most_growth_paper = max(derivatives.items(), key=lambda item: item[1][-1])
                 print(f"Most rapidly growing paper: {most_growth_paper[0]}")
 
-                # Paper with highest average growth over period
+                # Paper with the highest average growth over period
                 avg_growth = {paper: np.mean(deriv) for paper, deriv in derivatives.items()}
                 most_consistent_riser = max(avg_growth.items(), key=lambda item: item[1])
                 print(f"Most consistent riser: {most_consistent_riser[0]}")
 
-                # Paper with highest single year growth spike
+                # Paper with the highest single year growth spike
                 max_single_jump = {paper: max(deriv) for paper, deriv in derivatives.items()}
                 biggest_spike_paper = max(max_single_jump.items(), key=lambda item: item[1])
                 print(f"Paper with biggest spike: {biggest_spike_paper[0]}")
