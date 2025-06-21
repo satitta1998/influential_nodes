@@ -103,7 +103,6 @@ class CitationGUI:
         self.setup_console_tab(console_frame)
         self.setup_results_tab(results_frame)
 
-
     def setup_parameters_tab(self, parent):
         """Set up the full parameters tab"""
         # Create scrollable frame for parameters
@@ -319,8 +318,6 @@ class CitationGUI:
 
         if params['significant_growth_threshold'] < 0:
             raise ValueError("Significant growth threshold cannot be negative.")
-
-  
 
     def run_engine_thread(self):
         """Run engine in a separate thread to prevent GUI freezing"""
@@ -566,7 +563,7 @@ class CitationGUI:
         if plotter == "pyplot":
             self.root.after(0, self.plot_with_matplotlib, tracked_papers, years_read_from_ds, significant_papers)
         elif plotter == "plotly":
-            self.root.after(0, self.plot_with_plotly, tracked_papers, years_read_from_ds, significant_papers)
+            self.root.after(0, self. plot_with_plotly, tracked_papers, years_read_from_ds, significant_papers)
 
         return {
             'tracked_papers': tracked_papers,

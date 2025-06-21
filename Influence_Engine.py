@@ -257,10 +257,14 @@ class CitationNetworkAnalyzer:
             dict: Dictionary mapping node IDs to gravity scores
         """
         gravity_scores = {}
+        graph_size = graph.size();
+        if graph_size == 0:
+            return gravity_scores
         degrees = dict(graph.out_degree())
+        epsilon = 1e-3
 
         for i in graph.nodes:
-            ki = degrees.get(i, 0)
+            ki = degrees.get(i, 0) + epsilon
             total_gravity = 0
             lengths = nx.single_source_shortest_path_length(graph, i)
 
@@ -283,6 +287,13 @@ class CitationNetworkAnalyzer:
                 total_gravity += (ki * kj) / (dij ** 2)
 
             gravity_scores[i] = total_gravity
+
+        # Normalize
+        total_sum = sum(gravity_scores.values())
+        if total_sum > 0:
+            for node in gravity_scores:
+                gravity_scores[node] /= total_sum
+
 
         # Display results
         self._display_top_bottom_scores(gravity_scores, "Local Gravity")
@@ -319,12 +330,15 @@ class CitationNetworkAnalyzer:
         print(f"Maximum shortest path length: {max_path_length}")
         print("Graph Size:", graph.size())
 
+        in_degrees = dict(graph.in_degree())
         gravity_rank = {}
         for i in graph.nodes:
             gravity_score = 0.0
             for j, dij in shortest_paths.get(i, {}).items():
                 if i != j and dij > 0:
-                    gravity_score += (pr[i] * pr[j]) / (dij ** k)
+                    out_i = in_degrees[i]
+                    out_j = in_degrees[j]
+                    gravity_score += pr[i] * (out_i * out_j) / (dij ** k)
             gravity_rank[i] = gravity_score
 
         # Display results
