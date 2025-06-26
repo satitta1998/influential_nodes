@@ -1,4 +1,5 @@
 import tkinter as tk
+import traceback
 from tkinter import filedialog, messagebox, scrolledtext
 from tkinter import ttk
 import threading
@@ -385,7 +386,7 @@ class CitationGUI:
                     print("\nAnalysis completed successfully!")
 
             except Exception as e:
-                error_msg = f"Error occurred: {str(e)}"
+                error_msg = f"Error occurred: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
                 print(error_msg)
                 self.result_queue.put(('error', error_msg))
             finally:
@@ -579,8 +580,9 @@ class CitationGUI:
             plotted_count = 0
                         
             for paper_id, score_history in tracked_papers.items():
-                if paper_id not in significant_papers and self.skip_insignificant:
-                    continue
+                if self.skip_insignificant.get():
+                    if paper_id not in significant_papers:
+                        continue
 
                 years_to_plot = years_read_from_ds[-len(score_history):]
                 self.ax.plot(years_to_plot, score_history, marker='o', label=f'Paper {str(paper_id)[-6:]}', alpha=0.7)
@@ -616,8 +618,9 @@ class CitationGUI:
             plotted_count = 0
 
             for paper_id, score_history in tracked_papers.items():
-                if paper_id not in significant_papers and self.skip_insignificant:                
-                    continue
+                if self.skip_insignificant.get():
+                    if paper_id not in significant_papers:
+                        continue
 
                 years_to_plot = years_read_from_ds[-len(score_history):]
                 for year, score in zip(years_to_plot, score_history):

@@ -5,8 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d1d851d1-a27b-4246-9996-945113771a1f" name="Changes" comment="better plotting">
-      <change beforePath="$PROJECT_DIR$/.idea/FinalProject.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/FinalProject.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Influence_Engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/Influence_Engine.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gui_app.py" beforeDir="false" afterPath="$PROJECT_DIR$/gui_app.py" afterDir="false" />
@@ -190,10 +188,10 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.gui_app" />
       <item itemvalue="Python.Influance_engine" />
-      <item itemvalue="Python.Influence_Engine" />
       <item itemvalue="Python.Influence_Engine (1)" />
+      <item itemvalue="Python.Influence_Engine" />
+      <item itemvalue="Python.gui_app" />
     </list>
     <recent_temporary>
       <list>
@@ -286,20 +284,12 @@
     <option name="LAST_COMMIT_MESSAGE" value="better plotting" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/gui_app.py</url>
-          <line>631</line>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
         <watch expression="self" />
         <watch expression="tracked_papers" language="Python" />
         <watch expression="score_history" />
+        <watch expression="self.skip_insignificant" language="Python" />
       </configuration>
     </watches-manager>
   </component>

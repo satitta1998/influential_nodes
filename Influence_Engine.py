@@ -325,9 +325,9 @@ class CitationNetworkAnalyzer:
 
         # Compute shortest paths
         shortest_paths = dict(nx.all_pairs_shortest_path_length(graph, cutoff=cutoff))
-        all_lengths = [d for dist in shortest_paths.values() for d in dist.values()]
-        max_path_length = max(all_lengths) if all_lengths else 0
-        print(f"Maximum shortest path length: {max_path_length}")
+        # all_lengths = [d for dist in shortest_paths.values() for d in dist.values()]
+        # max_path_length = max(all_lengths) if all_lengths else 0
+        # print(f"Maximum shortest path length: {max_path_length}")
         print("Graph Size:", graph.size())
 
         in_degrees = dict(graph.in_degree())
