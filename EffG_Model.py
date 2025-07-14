@@ -294,6 +294,12 @@ def main(G: nx.DiGraph):
     # Step 9: Convert to dictionary {node_id: gravity_score}
     gravity_scores = {node_id: effg_scores[idx] for idx, node_id in index_to_node_id.items()}
 
+    # Normalize
+    total_sum = sum(gravity_scores.values())
+    if total_sum > 0:
+        for node in gravity_scores:
+            gravity_scores[node] /= total_sum
+
     end_time = datetime.now()
     print(f"Main ended at: {end_time.strftime('%H:%M')}")
 
