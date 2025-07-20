@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d1d851d1-a27b-4246-9996-945113771a1f" name="Changes" comment="better plotting">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Capstone Project Phase A 25-1-R-18.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ComparisionBestPapers.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/EffG_Model.py" beforeDir="false" afterPath="$PROJECT_DIR$/EffG_Model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Presentation 25-1-R-18.pptx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Testing_Cora.ipynb" beforeDir="false" />
-    </list>
+    <list default="true" id="d1d851d1-a27b-4246-9996-945113771a1f" name="Changes" comment="better plotting" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
